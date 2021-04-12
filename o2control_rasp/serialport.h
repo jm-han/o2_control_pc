@@ -33,12 +33,16 @@ public slots:
 private:
     QSerialPort* m_pSerialPort = nullptr;
     QByteArray m_arrRecv;
-    QVector<float> m_vecBAR;
+    QVector<int> m_vecBAR;
     QVector<float> m_vecBAR2;
     QVector<float> m_vecFlow;
 private:
-    float m_fBAR = 0.0f;
-    float m_fBARRaw= 0.0f;
+    //float m_fBAR = 0.0f;
+    //float m_fBARRaw= 0.0f;
+    int m_iBAR = 0;
+    int m_iBARRaw = 0;
+    float kal_fBAR= 0.0f;
+    float kal_fBAR2= 0.0f;
     float m_fBAR2 = 0.0f;
     float m_fBARRaw2= 0.0f;
     float m_fFlow = 0.0f;

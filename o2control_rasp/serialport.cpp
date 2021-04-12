@@ -76,11 +76,12 @@ void SerialPort::handleReadyRead()
           //qDebug() << "cType : " << cType;
           switch (cType)
           {
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
+            case '1':           //pgt11 bar 1 (측정값)
+            case '2':           //pgt11 bar 2 (측정값)
+            case '3':           //awm5104 flow (측정값)
+            case '4':           //잔여시간 계산   (아두이노에서 별도로 보내지 않음)
+            case '5':           //pgt11 bar 1 (아두이노 칼만 적용값)
+            case '6':           //pgt11 bar 2 (아두이노 칼만 적용값)
             {
               char number[8];
               memset(number, 0, 8);
@@ -93,27 +94,27 @@ void SerialPort::handleReadyRead()
               {
               case '1':                                 // PGT11 첫번째 값 수신 ( 1로 시작하는 값)
               {
-                  float fBAR = float(iTemp) / 100.0f;
-                  m_fBARRaw=fBAR;                       // 본래값 저장
-                  m_vecBAR.push_back(fBAR);
+                  int iBAR = iTemp / 100;
+                  m_iBARRaw=iBAR;                       // 아두이노 BAR1 측정값 수령
+                  m_vecBAR.push_back(iBAR);
 
                   if (m_vecBAR.size() > 10)  // 10개의 데이터 받아서 평균처리하여 데이터 출력
                       m_vecBAR.pop_front();
-                  float fTotalBAR = 0.0f;
+                  int iTotalBAR = 0.0f;
                   for (auto iter : m_vecBAR)
                   {
-                      fTotalBAR += iter;
+                      iTotalBAR += iter;
                   }
-                  fTotalBAR /= m_vecBAR.size();
-                  if(fTotalBAR<-30.0f){                   // 압력이 1.0 bar 보다 낮으면 모두 0 처리
-                      fTotalBAR=-30.0f;
+                  iTotalBAR /= m_vecBAR.size();
+                  if(iTotalBAR<-30){                   // 압력이 1.0 bar 보다 낮으면 모두 0 처리
+                      iTotalBAR=-30;
                   }
-                  else if(fTotalBAR<1.0f){
-                      fTotalBAR=0.0f;
+                  else if(iTotalBAR<1){
+                      iTotalBAR=0;
                   }
-                  m_fBAR = fTotalBAR;
+                  m_iBAR = iTotalBAR;
                   //m_fBAR = 30.0f;
-                  if (m_fBAR < m_limit)       // m_limit bar 이하이면 화면색 변경되도록 설정
+                  if (m_iBAR < m_limit)       // m_limit bar 이하이면 화면색 변경되도록 설정
                       m_bBARBelow50 = true;
                   else
                       m_bBARBelow50 = false;
@@ -176,8 +177,9 @@ void SerialPort::handleReadyRead()
                   float PGT_1=0.0f;
                   float PGT_2=0.0f;
 
-                  if(m_fBAR>0.0f){
-                    PGT_1 = (m_CVol * (m_fBAR * 0.1f) * 10.0f) / m_fFlow;       // pgt1 번 압력과 유속 계산으로 시간확안
+                  float fBAR = (float)m_iBAR;
+                  if(fBAR>0.0f){
+                    PGT_1 = (m_CVol * (fBAR * 0.1f) * 10.0f) / m_fFlow;       // pgt1 번 압력과 유속 계산으로 시간확안
                     qDebug()<<"pgt1_remain:"<<PGT_1;
                   }
                   if(m_fBAR2>0.0f){
@@ -193,7 +195,8 @@ void SerialPort::handleReadyRead()
               case '4':                                 // 아두이노로 부터 넘어오는 잔여시간 확인
                //   m_fRemain = float(iTemp) / 100.0f;
               {
-                  float PGT_1 = (m_CVol * (m_fBAR * 0.1f) * 10.0f) / m_fFlow;       // pgt1 번 압력과 유속 계산으로 시간확안
+                  float fBAR = (float)m_iBAR;
+                  float PGT_1 = (m_CVol * (fBAR * 0.1f) * 10.0f) / m_fFlow;       // pgt1 번 압력과 유속 계산으로 시간확안
                   qDebug()<<"pgt1_remain:"<<PGT_1;
                   float PGT_2 = (m_CVol * (m_fBAR2 * 0.1f) * 10.0f) / m_fFlow;      // pgt2 번 압력과 유속 계산으로 시간확인
                   qDebug()<<"pgt2_remain:"<<PGT_2;
@@ -203,6 +206,22 @@ void SerialPort::handleReadyRead()
 
                   break;
 
+              case '5':                                 // PGT11 아두이노 칼만필터 통과값(BAR1)
+              {
+                  float fBAR2 = float(iTemp) / 100.0f;
+                  kal_fBAR=fBAR2;  // 칼만필터 통과값(아두이노)
+
+              }
+                  break;
+
+              case '6':                                 // PGT11 아두이노 칼만필터 통과값(BAR2)
+              {
+                  float fBAR2 = float(iTemp) / 100.0f;
+                  kal_fBAR2=fBAR2;  // 칼만필터 통과값(아두이노)
+
+              }
+                  break;
+
 
             /*  case '5':
               {
@@ -210,6 +229,7 @@ void SerialPort::handleReadyRead()
                   qDebug() << "_Coff : " << fTemp;
               }
                   break; */
+
               default:
                   break;
               }
@@ -221,13 +241,15 @@ void SerialPort::handleReadyRead()
               QString Strbar2;
               Strbar2.sprintf("%02.01f",double(m_fBAR2));
               qDebug()<<"PGT2 :"<<m_fBAR2;
+              qDebug()<<"PGT2_original: "<<kal_fBAR;
 
 
               QString Strbar;
-              Strbar.sprintf("%02.01f",double(m_fBAR));
+              Strbar.sprintf("%02.01f",double(m_iBAR));
               //Strbar = QString("%01").arg(double(m_fBAR));
               //Strbar = QString::number(m_fBAR, 'f', 2);
-              qDebug()<<"PGT1 :"<<m_fBAR;
+              qDebug()<<"PGT1 :"<<m_iBAR;
+              qDebug()<<"PGT2_original: "<<kal_fBAR2;
 
               QString Strflow;
               Strflow.sprintf("%02.02f",double(m_fFlow));
@@ -253,10 +275,20 @@ void SerialPort::handleReadyRead()
                   {
                       QString strTime = QDateTime::currentDateTime().toString("hh_mm_ss");
                       QTextStream out(&m_LogFile);
-                      out << strTime << "\t" << m_fBAR << "\t" << m_fBARRaw << "\t" << m_fBAR2 << "\t" << m_fBARRaw2 << "\t" << m_fFlow << "\t" << m_fFlowRaw << "\t" << strRemain << "\n";
+                      out << strTime << "\t" << m_iBAR << "\t" << m_iBARRaw << "\t" << m_fBAR2 << "\t" << m_fBARRaw2 << "\t" << m_fFlow << "\t" << m_fFlowRaw << "\t" << kal_fBAR <<"\t" << kal_fBAR2<<"\t"<<strRemain << "\n";
                       //qDebug() << "strRemain : " << strRemain << endl;
                   }
+
+                  // m_iBAR : 아두이노에서 받은 10개의 데이터를 평균낸값  (BAR1)
+                  // m_iBARRaw : 아두이노에서 받은 그 자체 값 (BAR1)
+                  // m_fBAR2 : 아두이노에서 받은 10개의 데이터를 평균낸값 (BAR2)
+                  // m_fBARRaw2 : 아두이노에서 받은 그 자체 값 (BAR2)
+                  // m_fFlow : 아두이노에서 받은 10개의 데이터를 평균낸값 (Flow)
+                  // m_fFlowRaw : 아두이노에서 받은 그 자체 값 (flow)
+                  // kal_fBAR : 아두이노에서 칼만필터를 통과한 값 (BAR1)
+                  // kal_fBAR2 : 아두이노에서 칼만필터를 통과한 값 (BAR2)
               }
+
             }
             break;
 
@@ -317,7 +349,7 @@ void SerialPort::OpenLogFile()
         qDebug() << "Fail to open";
 
     QTextStream out(&m_LogFile);
-    out << "DateTime\t" << "Bar1\t" <<"BAR1_Raw\t" << "Bar2\t" << "BAR2_Raw2\t" << "Flow\t" << "FlowRaw\t" << "RemainTime\n";
+    out << "DateTime\t" << "Bar1\t" <<"BAR1_Raw\t" << "Bar2\t" << "BAR2_Raw2\t" << "Flow\t" << "FlowRaw\t" << "ori_BAR1\t" << "ori_BAR2\t"<< "RemainTime\n";
 }
 
 void SerialPort::OnTimerCallbackFunc()
