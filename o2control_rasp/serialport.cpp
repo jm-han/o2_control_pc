@@ -76,12 +76,12 @@ void SerialPort::handleReadyRead()
           //qDebug() << "cType : " << cType;
           switch (cType)
           {
-            case '1':           //pgt11 bar 1 (측정값)
-            case '2':           //pgt11 bar 2 (측정값)
+            case '1':           //pgt11 bar 1 (칼만필터 적용값)
+            case '2':           //pgt11 bar 2 (칼만필터 적용값)
             case '3':           //awm5104 flow (측정값)
             case '4':           //잔여시간 계산   (아두이노에서 별도로 보내지 않음)
-            case '5':           //pgt11 bar 1 (아두이노 칼만 적용값)
-            case '6':           //pgt11 bar 2 (아두이노 칼만 적용값)
+            case '5':           //pgt11 bar 1 (계산값 row)
+            case '6':           //pgt11 bar 2 (계산값 row)
             {
               char number[8];
               memset(number, 0, 8);
@@ -239,13 +239,13 @@ void SerialPort::handleReadyRead()
               //qDebug() << "iSize : " << iSize;
               iPos += 10;
               QString Strbar2;
-              Strbar2.sprintf("%02.01f",double(m_fBAR2));
+              Strbar2.sprintf("%01.00f",double(m_fBAR2));
               qDebug()<<"PGT2 :"<<m_fBAR2;
               qDebug()<<"PGT2_original: "<<kal_fBAR;
 
 
               QString Strbar;
-              Strbar.sprintf("%02.01f",double(m_iBAR));
+              Strbar.sprintf("%01.00f",double(m_iBAR));
               //Strbar = QString("%01").arg(double(m_fBAR));
               //Strbar = QString::number(m_fBAR, 'f', 2);
               qDebug()<<"PGT1 :"<<m_iBAR;
@@ -275,18 +275,20 @@ void SerialPort::handleReadyRead()
                   {
                       QString strTime = QDateTime::currentDateTime().toString("hh_mm_ss");
                       QTextStream out(&m_LogFile);
-                      out << strTime << "\t" << m_iBAR << "\t" << m_iBARRaw << "\t" << m_fBAR2 << "\t" << m_fBARRaw2 << "\t" << m_fFlow << "\t" << m_fFlowRaw << "\t" << kal_fBAR <<"\t" << kal_fBAR2<<"\t"<<strRemain << "\n";
+                      //out << strTime << "\t" << m_iBAR << "\t" << m_iBARRaw << "\t" << m_fBAR2 << "\t" << m_fBARRaw2 << "\t" << m_fFlow << "\t" << m_fFlowRaw << "\t" << kal_fBAR <<"\t" << kal_fBAR2<<"\t"<<strRemain << "\n";
+                      out << strTime << "\t" << m_iBAR << "\t" << m_iBARRaw << "\t" <<  kal_fBAR << "\t" << m_fBAR2 << "\t" <<m_fBARRaw2 << "\t" << kal_fBAR2 << "\t" << m_fFlow <<"\t" << m_fFlowRaw<<"\t"<<strRemain << "\n";
                       //qDebug() << "strRemain : " << strRemain << endl;
                   }
 
-                  // m_iBAR : 아두이노에서 받은 10개의 데이터를 평균낸값  (BAR1)
-                  // m_iBARRaw : 아두이노에서 받은 그 자체 값 (BAR1)
-                  // m_fBAR2 : 아두이노에서 받은 10개의 데이터를 평균낸값 (BAR2)
-                  // m_fBARRaw2 : 아두이노에서 받은 그 자체 값 (BAR2)
+                  // 21-04-13(화)  -- 아두이노 소스와 함께
+                  // m_iBAR : Kalman필터를 통화한 10개의 데이터를 평균낸값  (BAR1)
+                  // m_iBARRaw : Kalman 필터를 통환한 그대로의 값 (BAR1)
+                  // m_fBAR2 : Kalman필터를 통화한 10개의 데이터를 평균낸값 (BAR2)
+                  // m_fBARRaw2 : Kalman 필터를 통환한 그대로의 값 (BAR2)
                   // m_fFlow : 아두이노에서 받은 10개의 데이터를 평균낸값 (Flow)
                   // m_fFlowRaw : 아두이노에서 받은 그 자체 값 (flow)
-                  // kal_fBAR : 아두이노에서 칼만필터를 통과한 값 (BAR1)
-                  // kal_fBAR2 : 아두이노에서 칼만필터를 통과한 값 (BAR2)
+                  // kal_fBAR : 아두이노에서 받은 그 자체 값 (BAR1)
+                  // kal_fBAR2 : 아두이노에서 받은 그 자체 값 (BAR2)
               }
 
             }
@@ -349,7 +351,8 @@ void SerialPort::OpenLogFile()
         qDebug() << "Fail to open";
 
     QTextStream out(&m_LogFile);
-    out << "DateTime\t" << "Bar1\t" <<"BAR1_Raw\t" << "Bar2\t" << "BAR2_Raw2\t" << "Flow\t" << "FlowRaw\t" << "ori_BAR1\t" << "ori_BAR2\t"<< "RemainTime\n";
+    //out << "DateTime\t" << "Kal1+Avg\t" <<"Kal1_Raw\t" << "Kal2+Avg\t" << "Kal2_Raw2\t" << "Flow\t" << "FlowRaw\t" << "BAR1\t" << "BAR2\t"<< "RemainTime\n";
+    out << "DateTime\t" << "Kal1+Avg\t" <<"Kal1_Raw\t" << "BAR1\t" << "Kal2+Avg\t" << "Kal2_Raw2\t" << "BAR2\t" << "Flow\t" << "FlowRaw\t" << "RemainTime\n";
 }
 
 void SerialPort::OnTimerCallbackFunc()
