@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>Camera_view.qml</file>
+        <file>Camera_button.qml</file>
+        <file>View_select.qml</file>
+        <file>Menu_bar.qml</file>
+        <file>C_rect.qml</file>
+        <file>B_rect.qml</file>
+        <file>V_rect.qml</file>
+    </qresource>
+</RCC>
