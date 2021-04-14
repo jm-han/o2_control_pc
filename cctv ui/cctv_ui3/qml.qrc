@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>C_rect.qml</file>
+        <file>B_rect.qml</file>
+        <file>V_rect.qml</file>
+    </qresource>
+</RCC>
